@@ -82,7 +82,7 @@ func hue(r, g, b float64) float64 {
 	mx, mn := math.Max(r, math.Max(g, b)), math.Min(r, math.Min(g, b))
 	d := mx - mn
 	// При R=G=B цвет серый (включая белый и чёрный), тон не определён.
-	// Условно выбираем H=0 и исключаем деление на ноль в следующих формулах.
+	// Условно выбираем H=0 и исключаем деление на ноль в следующих форм/home/paprojky/Pictures/KGулах.
 	if d == 0 {
 		return 0 // серый: тон не определён
 	}
@@ -226,7 +226,7 @@ func convert(w http.ResponseWriter, r *http.Request) {
 		// цифрами с ведущим нулём: 0 → 00, 15 → 0F, 255 → FF.
 		// Порядок #RRGGBB: RGB(255,0,0) → #FF0000. В отличие от массивов
 		// ответа HEX теряет дробную часть каналов и используется для показа цвета.
-		Hex:  fmt.Sprintf("#%02X%02X%02X", int(math.Round(rgb[0])), int(math.Round(rgb[1])), int(math.Round(rgb[2]))),
+		Hex: fmt.Sprintf("#%02X%02X%02X", int(math.Round(rgb[0])), int(math.Round(rgb[1])), int(math.Round(rgb[2]))),
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(res)
