@@ -21,22 +21,22 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("ЛР3 — Базовые растровые алгоритмы")
         self.canvas = RasterCanvas()
-        self.user_edited = False
+        self._user_edited = False
         self._build_ui()
         self.load_example()
         self.draw()
 
     def _build_ui(self):
         panel = QGroupBox("Параметры")
-        form = QFormLayout(panel)
+        form = QFormLayout()
         self.algorithm = QComboBox()
-        self.algorithm.addItems(("Пошаговый", "ЦДА", "Брезенхем (линия)", "Брезенхем (окружность)"))
+        self.algorithm.addItems(("Пошаговый", "ЦДА (DDA)", "Брезенхем (линия)", "Брезенхем (окружность)"))
         self.algorithm.currentIndexChanged.connect(self.algorithm_changed)
         validator = QIntValidator(-1_000_000, 1_000_000, self)
         self.x1, self.y1, self.x2, self.y2, self.radius = [QLineEdit() for _ in range(5)]
         for edit in (self.x1, self.y1, self.x2, self.y2, self.radius):
             edit.setValidator(validator)
-            edit.textEdited.connect(lambda _text: setattr(self, "user_edited", True))
+            edit.textEdited.connect(self._on_user_edited)
         example = QPushButton("Пример")
         example.clicked.connect(self.load_example)
         draw = QPushButton("Построить")
@@ -50,6 +50,7 @@ class MainWindow(QMainWindow):
             form.addRow(label, edit)
         for widget in (example, draw, self.info, self.centers):
             form.addRow(widget)
+        panel.setLayout(form)
         panel.setFixedWidth(260)
 
         plus, minus = QPushButton("+"), QPushButton("−")
@@ -59,12 +60,21 @@ class MainWindow(QMainWindow):
         self.slider.setRange(0, 1000)
         self.slider.setInvertedAppearance(True)
         self.slider.valueChanged.connect(lambda value: self.canvas.set_cell(self.slider_to_cell(value)))
-        bottom = QHBoxLayout()
-        bottom.addWidget(QLabel("Масштаб:")); bottom.addWidget(plus)
-        bottom.addWidget(self.slider, 1); bottom.addWidget(minus)
-        content = QHBoxLayout(); content.addWidget(self.canvas, 1); content.addWidget(panel)
+        bottom = QWidget()
+        bottom_layout = QHBoxLayout(bottom)
+        bottom_layout.setContentsMargins(8, 4, 8, 8)
+        bottom_layout.addWidget(QLabel("Масштаб:")); bottom_layout.addWidget(plus)
+        bottom_layout.addWidget(self.slider, 1); bottom_layout.addWidget(minus)
+
+        central = QWidget(); content = QHBoxLayout(central)
+        content.setContentsMargins(8, 8, 8, 0)
+        right = QWidget(); right_layout = QVBoxLayout(right)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.addWidget(panel); right_layout.addStretch(1)
+        content.addWidget(self.canvas, 1); content.addWidget(right)
         root = QWidget(); layout = QVBoxLayout(root)
-        layout.addLayout(content, 1); layout.addLayout(bottom)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(central, 1); layout.addWidget(bottom)
         self.setCentralWidget(root); self.resize(1100, 800)
 
     def cell_bounds(self):
@@ -87,16 +97,19 @@ class MainWindow(QMainWindow):
     def toggle_centers(self, checked):
         self.canvas.show_centers = checked; self.canvas.update()
 
+    def _on_user_edited(self, _text):
+        self._user_edited = True
+
     def algorithm_changed(self):
         circle = self.algorithm.currentIndex() == 3
         self.x2.setEnabled(not circle); self.y2.setEnabled(not circle); self.radius.setEnabled(circle)
-        if not self.user_edited:
+        if not self._user_edited:
             self.load_example()
 
     def load_example(self):
         for edit, value in zip((self.x1, self.y1, self.x2, self.y2, self.radius), EXAMPLES[self.algorithm.currentIndex()]):
             edit.blockSignals(True); edit.setText(value); edit.blockSignals(False)
-        self.user_edited = False
+        self._user_edited = False
 
     @staticmethod
     def integer(edit, name):

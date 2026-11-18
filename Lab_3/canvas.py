@@ -9,7 +9,8 @@ class RasterCanvas(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.cell, self.points, self.show_centers = 30, [], False
-        self.setMinimumSize(650, 560)
+        self.setMinimumSize(700, 700)
+        self.setAutoFillBackground(True)
         self.setStyleSheet("background: white;")
 
     def set_points(self, points):
@@ -23,12 +24,14 @@ class RasterCanvas(QWidget):
     def zoom(self, factor):
         self.set_cell(self.cell * factor)
 
-    def fit(self):
+    def fit(self, margin_ratio=0.15, scale=0.6):
         if not self.points:
             return
         xs, ys = zip(*self.points)
         dx, dy = max(1, max(xs) - min(xs)), max(1, max(ys) - min(ys))
-        self.set_cell(min(self.width() * 0.7 / dx, self.height() * 0.7 / dy) * 0.65)
+        width = self.width() * (1 - 2 * margin_ratio)
+        height = self.height() * (1 - 2 * margin_ratio)
+        self.set_cell(min(width / dx, height / dy) * scale)
 
     def _origin(self):
         return self.width() // 2, self.height() // 2
