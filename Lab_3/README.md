@@ -17,6 +17,16 @@ PyQt5-приложение визуализирует четыре базовы�
 
 ## Запуск
 
+### Windows
+
+Готовое приложение не требует установленного Python:
+
+```text
+main.exe
+```
+
+### macOS и запуск из исходников
+
 ```bash
 cd /Users/mikhailpaprotski/vscode/computerGraphicsBSU/Lab_3
 python3 -m venv .venv
