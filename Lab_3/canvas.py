@@ -1,3 +1,5 @@
+import math
+
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QBrush, QColor, QPainter, QPen
 from PyQt5.QtWidgets import QWidget
@@ -51,46 +53,57 @@ class RasterCanvas(QWidget):
         cx, cy = self._origin()
         return QPoint(int(cx + (x + 0.5) * self.cell), int(cy - (y + 0.5) * self.cell))
 
+    @staticmethod
+    def _nice_step(cell):
+        target = 55 / max(cell, 0.001)
+        power = 10 ** math.floor(math.log10(target))
+        return next(multiplier * power for multiplier in (1, 2, 5, 10)
+                    if multiplier * power >= target)
+
+    def _draw_grid(self, painter):
+        width, height = self.width(), self.height()
+        cx, cy = self._origin()
+        step = self._nice_step(self.cell)
+        pixels = step * self.cell
+
+        painter.setPen(QPen(QColor(232, 232, 232), 1))
+        for direction in (1, -1):
+            x = cx if direction == 1 else cx - pixels
+            while 0 <= x <= width:
+                painter.drawLine(int(x), 0, int(x), height)
+                x += direction * pixels
+            y = cy if direction == 1 else cy - pixels
+            while 0 <= y <= height:
+                painter.drawLine(0, int(y), width, int(y))
+                y += direction * pixels
+
+        painter.setPen(QPen(QColor(65, 65, 65), 2))
+        painter.drawLine(cx, 0, cx, height)
+        painter.drawLine(0, cy, width, cy)
+
+        painter.setPen(QColor(80, 80, 80))
+        font = painter.font()
+        font.setPointSize(8)
+        painter.setFont(font)
+        for direction in (1, -1):
+            index = 1
+            while 0 <= cx + direction * index * pixels <= width:
+                x = cx + direction * index * pixels
+                painter.drawText(int(x + 3), int(cy + 14),
+                                 f"{direction * index * step:g}")
+                index += 1
+            index = 1
+            while 0 <= cy - direction * index * pixels <= height:
+                y = cy - direction * index * pixels
+                painter.drawText(int(cx + 5), int(y - 3),
+                                 f"{direction * index * step:g}")
+                index += 1
+
     def paintEvent(self, _event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing, False)
-        width, height = self.width(), self.height()
-        cx, cy = self._origin()
         cell = self.cell
-        # Сетка должна помогать читать координаты, но не конкурировать с
-        # осями и растровыми пикселями.
-        painter.setPen(QPen(QColor(244, 246, 248), 1))
-        for x in range(cx % cell, width + cell, cell):
-            painter.drawLine(x, 0, x, height)
-        for y in range(cy % cell, height + cell, cell):
-            painter.drawLine(0, y, width, y)
-        painter.setPen(QPen(QColor(60, 60, 60), 2))
-        painter.drawLine(0, cy, width, cy)
-        painter.drawLine(cx, 0, cx, height)
-        painter.drawText(width - 18, cy - 8, "X")
-        painter.drawText(cx + 8, 16, "Y")
-
-        needed = 1
-        while needed * cell < 60:
-            needed += 1
-        label_step = next((n for n in (1, 2, 5, 10, 20, 50, 100, 200, 500) if needed <= n), needed)
-        painter.setPen(QColor(80, 80, 80))
-        label_font = painter.font()
-        label_font.setPointSize(8)
-        painter.setFont(label_font)
-        metrics = painter.fontMetrics()
-        for value in range(-(cx // cell), (width - cx) // cell + 2):
-            if value and value % label_step == 0:
-                x = cx + value * cell
-                painter.drawLine(x, cy - 4, x, cy + 4)
-                text = str(value)
-                painter.drawText(x - metrics.horizontalAdvance(text) // 2, cy + 6 + metrics.height(), text)
-        for value in range(-((height - cy) // cell), cy // cell + 2):
-            if value and value % label_step == 0:
-                y = cy - value * cell
-                painter.drawLine(cx - 4, y, cx + 4, y)
-                painter.drawText(cx + 6, y + metrics.ascent() // 2, str(value))
-        painter.drawText(cx + 6, cy + 6 + metrics.ascent(), "0")
+        self._draw_grid(painter)
 
         painter.setPen(Qt.NoPen)
         painter.setBrush(QBrush(QColor(220, 50, 50)))
